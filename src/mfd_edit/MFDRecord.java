@@ -61,6 +61,24 @@ public class MFDRecord {
 		return (byte) (i & 0x00ff);
 	}
 
+	public MFDRecord() {
+		this.record_no = 0;
+		this.style_no = 0;
+		this.time_upper = 4;
+		this.time_lower = 4;
+		this.tempo = 120;
+		this.fav = false;
+		this.s1 = false;
+		this.s2 = false;
+		this.title = "";
+		this.genre = "";
+		this.keywords = "";
+		this.intro = IntroNextId.OFF;
+		this.next = IntroNextId.OFF;
+		this.extStylePath = "";
+		this.isMusic = false;
+	}
+
 	public MFDRecord(InputStream s) throws IOException {
 		byte record[] = new byte[92];
 		s.read(record);
@@ -120,7 +138,7 @@ public class MFDRecord {
 			s.write(b);
 		}
 
-		s.write((this.intro.getValue() & 0xf0) | (this.intro.getValue() & 0x0f));
+		s.write(this.intro.getValue() * 16 + this.next.getValue());
 	}
 
 	public void export_ext(OutputStream s, int rec_no) throws IOException {

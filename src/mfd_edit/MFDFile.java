@@ -129,4 +129,12 @@ public class MFDFile {
 		}
 		return sb.toString();
 	}
+
+	public void addEmptyRecord() {
+		this.recordList.add(new MFDRecord());
+	}
+
+	public void removeRecord(int row) {
+		this.recordList.remove(row);
+	}
 }

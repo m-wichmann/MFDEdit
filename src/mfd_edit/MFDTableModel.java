@@ -25,7 +25,12 @@ public class MFDTableModel extends AbstractTableModel {
 	private static final long serialVersionUID = -4830214666051586240L;
 
 	private MFDFile mfdFile;
-	
+	private boolean isEditable = false;
+
+	public void setEditable(boolean isEditable) {
+		this.isEditable = isEditable;
+	}
+
 	private static final TableData[] tableData;
 	static {
 		tableData = new TableData[] {
@@ -40,14 +45,25 @@ public class MFDTableModel extends AbstractTableModel {
 				new TableData("S2", m -> m.s2, (m, n) -> m.s2 = (Boolean) n, Boolean.class),
 				new TableData("Genre", m -> m.genre, (m, n) -> m.genre = (String) n, String.class),
 				new TableData("Keywords", m -> m.keywords, (m, n) -> m.keywords = (String) n, String.class),
-				new TableData("Intro", m -> m.intro, (m, n) -> m.intro = MFDRecord.IntroNextId.valueOf((String) n), MFDRecord.IntroNextId.class),
-				new TableData("Next", m -> m.next, (m, n) -> m.next = MFDRecord.IntroNextId.valueOf((String) n), MFDRecord.IntroNextId.class),
+				new TableData("Intro", m -> m.intro, (m, n) -> m.intro = MFDRecord.IntroNextId.valueOf((String) n),
+						MFDRecord.IntroNextId.class),
+				new TableData("Next", m -> m.next, (m, n) -> m.next = MFDRecord.IntroNextId.valueOf((String) n),
+						MFDRecord.IntroNextId.class),
 				new TableData("Style Pfad", m -> m.extStylePath, (m, n) -> m.extStylePath = (String) n, String.class),
 				new TableData("isMusic", m -> m.isMusic, (m, n) -> m.isMusic = (Boolean) n, Boolean.class), };
 	}
 
 	public void setMfdFile(MFDFile mfdFile) {
 		this.mfdFile = mfdFile;
+	}
+
+	public void addEmptyRow() {
+		mfdFile.addEmptyRecord();
+	}
+
+	public void removeRow(int row) {
+		mfdFile.removeRecord(row);
+		fireTableDataChanged();
 	}
 
 	@Override
@@ -76,7 +92,7 @@ public class MFDTableModel extends AbstractTableModel {
 
 	@Override
 	public boolean isCellEditable(int rowIndex, int columnIndex) {
-		return true;
+		return this.isEditable;
 	}
 
 	@Override
