@@ -1,6 +1,8 @@
 package mfd_edit;
 
 public class Main {
+	public static String version = "0.1.0";
+
 	public static void main(String[] args) {
 		javax.swing.SwingUtilities.invokeLater(new Runnable() {
 			public void run() {

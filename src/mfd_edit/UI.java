@@ -1,6 +1,7 @@
 package mfd_edit;
 
 import java.awt.Dimension;
+import java.awt.Font;
 import java.awt.Point;
 import java.awt.Toolkit;
 import java.awt.datatransfer.Clipboard;
@@ -10,7 +11,6 @@ import java.awt.event.ActionListener;
 import java.awt.event.KeyEvent;
 import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
-import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileOutputStream;
 import java.io.IOException;
@@ -57,6 +57,7 @@ public class UI {
 	JCheckBoxMenuItem menuItemEditEnable;
 	private MFDFile mfdFile;
 	private MFDTableModel tm;
+	private JFrame infoFrame;
 
 	public class OpenActionListener implements ActionListener {
 		@Override
@@ -64,8 +65,7 @@ public class UI {
 			JFileChooser c = new JFileChooser();
 
 			// TODO: set real path (maybe last)
-			c.setCurrentDirectory(
-					new File("/media/data2/Dokumente/Programming/workspaces/workspace_java/MFDEdit/test"));
+			// c.setCurrentDirectory(new File(""));
 
 			c.setFileFilter(new FileNameExtensionFilter("MFD File", "mfd"));
 			int rVal = c.showOpenDialog(frame);
@@ -88,8 +88,7 @@ public class UI {
 			JFileChooser c = new JFileChooser();
 
 			// TODO: set real path (maybe last)
-			c.setCurrentDirectory(
-					new File("/media/data2/Dokumente/Programming/workspaces/workspace_java/MFDEdit/test"));
+			// c.setCurrentDirectory(new File(""));
 
 			c.setFileFilter(new FileNameExtensionFilter("MFD File", "mfd"));
 			int rVal = c.showSaveDialog(frame);
@@ -103,6 +102,13 @@ public class UI {
 					}
 				}
 			}
+		}
+	}
+
+	public class InfoActionListener implements ActionListener {
+		@Override
+		public void actionPerformed(ActionEvent e) {
+			infoFrame.setVisible(true);
 		}
 	}
 
@@ -221,6 +227,10 @@ public class UI {
 		JMenuItem menuItemSave = new JMenuItem("Speichern...");
 		menuItemSave.addActionListener(new SaveActionListener());
 		menuFile.add(menuItemSave);
+		menuFile.addSeparator();
+		JMenuItem menuItemInfo = new JMenuItem("Info");
+		menuItemInfo.addActionListener(new InfoActionListener());
+		menuFile.add(menuItemInfo);
 		menuFile.addSeparator();
 		JMenuItem menuItemClose = new JMenuItem("Schließen");
 		menuItemClose.addActionListener(new CloseActionListener());
@@ -378,6 +388,31 @@ public class UI {
 		table.registerKeyboardAction(new PasteActionListener(), "Einfügen", keyStrokePaste, JComponent.WHEN_FOCUSED);
 	}
 
+	public void buildInfoFrame() {
+		infoFrame = new JFrame();
+		infoFrame.setDefaultCloseOperation(JFrame.HIDE_ON_CLOSE);
+		infoFrame.setPreferredSize(new Dimension(400, 300));
+
+		JPanel infoPane = new JPanel();
+		infoPane.setLayout(new BoxLayout(infoPane, BoxLayout.PAGE_AXIS));
+
+		infoPane.add(Box.createRigidArea(new Dimension(30, 30)));
+
+		JLabel versionLabel = new JLabel("MFDEdit " + Main.version);
+		versionLabel.setFont(new Font(versionLabel.getFont().getName(), Font.PLAIN, 20));
+		infoPane.add(versionLabel);
+
+		infoPane.add(Box.createRigidArea(new Dimension(0, 30)));
+
+		JLabel linkLabel = new JLabel("see github.com/m-wichmann/MFDEdit for details");
+		infoPane.add(linkLabel);
+
+		infoPane.add(Box.createRigidArea(new Dimension(30, 30)));
+
+		infoFrame.add(infoPane);
+		infoFrame.pack();
+	}
+
 	public UI() {
 		frame = new JFrame("MFDEdit");
 		frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
@@ -390,6 +425,7 @@ public class UI {
 		this.buildTableEditors();
 		this.buildPopupMenu();
 		this.buildShortcuts();
+		this.buildInfoFrame();
 
 		frame.pack();
 		frame.setVisible(true);
