@@ -107,4 +107,8 @@ public class MFDTableModel extends AbstractTableModel {
 		MFDRecord mfdRecord = mfdFile.getRecordList().get(rowIndex);
 		return tableData[columnIndex].valueProvider.apply(mfdRecord);
 	}
+
+	public MFDFile getMfdFile() {
+		return mfdFile;
+	}
 }

@@ -23,7 +23,8 @@ public class MFDFile {
 		byte header[] = new byte[36];
 		s.read(header);
 		this.headerData = Arrays.copyOf(header, 34);
-		return (header[35]) | (header[34] << 8);
+
+		return MFDRecord.bytesToUInt(header[34], header[35]);
 	}
 
 	private void readTrailer(InputStream s) throws IOException {

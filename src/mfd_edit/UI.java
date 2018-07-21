@@ -2,29 +2,49 @@ package mfd_edit;
 
 import java.awt.Dimension;
 import java.awt.Point;
+import java.awt.Toolkit;
+import java.awt.datatransfer.Clipboard;
+import java.awt.datatransfer.UnsupportedFlavorException;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
+import java.awt.event.KeyEvent;
 import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileOutputStream;
 import java.io.IOException;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Comparator;
+import java.util.regex.PatternSyntaxException;
 
+import javax.swing.Box;
+import javax.swing.BoxLayout;
 import javax.swing.DefaultCellEditor;
+import javax.swing.JButton;
 import javax.swing.JCheckBoxMenuItem;
 import javax.swing.JComboBox;
+import javax.swing.JComponent;
 import javax.swing.JFileChooser;
 import javax.swing.JFrame;
+import javax.swing.JLabel;
 import javax.swing.JMenu;
 import javax.swing.JMenuBar;
 import javax.swing.JMenuItem;
+import javax.swing.JPanel;
 import javax.swing.JPopupMenu;
 import javax.swing.JScrollPane;
 import javax.swing.JTable;
+import javax.swing.JTextField;
+import javax.swing.KeyStroke;
 import javax.swing.ListSelectionModel;
+import javax.swing.RowFilter;
+import javax.swing.event.DocumentEvent;
+import javax.swing.event.DocumentListener;
 import javax.swing.filechooser.FileNameExtensionFilter;
 import javax.swing.table.TableColumn;
+import javax.swing.table.TableRowSorter;
 
 import mfd_edit.MFDRecord.IntroNextId;
 
@@ -32,6 +52,7 @@ public class UI {
 
 	private JFrame frame;
 	private JTable table;
+	private TableRowSorter<MFDTableModel> sorter;
 	private JPopupMenu popupMenu;
 	JCheckBoxMenuItem menuItemEditEnable;
 	private MFDFile mfdFile;
@@ -55,6 +76,7 @@ public class UI {
 					tm.fireTableDataChanged();
 				} catch (IOException e1) {
 					// ignore error
+					System.out.println(e1);
 				}
 			}
 		}
@@ -95,17 +117,32 @@ public class UI {
 	public class CopyActionListener implements ActionListener {
 		@Override
 		public void actionPerformed(ActionEvent e) {
-			// Clipboard system =
-			// Toolkit.getDefaultToolkit().getSystemClipboard();
-			//
-			// system.setContents(contents, owner);
+			int[] rows = table.getSelectedRows();
+
+			/* TODO: Support copying of multiple rows */
+			MFDRecord data = mfdFile.getRecordList().get(table.convertRowIndexToModel(rows[0]));
+
+			Clipboard system = Toolkit.getDefaultToolkit().getSystemClipboard();
+			system.setContents(data, null);
 		}
 	}
 
 	public class PasteActionListener implements ActionListener {
 		@Override
 		public void actionPerformed(ActionEvent e) {
+			MFDRecord record = null;
 
+			try {
+				Clipboard system = Toolkit.getDefaultToolkit().getSystemClipboard();
+				record = (MFDRecord) system.getData(MFDRecord.mfdRecordFlavor);
+			} catch (UnsupportedFlavorException | IOException e1) {
+				e1.printStackTrace();
+			}
+
+			if ((mfdFile != null) && (record != null)) {
+				mfdFile.getRecordList().add(record);
+				tm.fireTableDataChanged();
+			}
 		}
 	}
 
@@ -128,7 +165,13 @@ public class UI {
 		@Override
 		public void actionPerformed(ActionEvent e) {
 			int[] rows = table.getSelectedRows();
+			ArrayList<Integer> rowList = new ArrayList<>();
 			for (int row : rows) {
+				rowList.add(row);
+			}
+			rowList.sort(Comparator.comparing(Integer::intValue).reversed());
+
+			for (Integer row : rowList) {
 				tm.removeRow(table.convertRowIndexToModel(row));
 			}
 		}
@@ -140,7 +183,14 @@ public class UI {
 			if (e.isPopupTrigger()) {
 				int rowAtPoint = table.rowAtPoint(new Point(e.getX(), e.getY()));
 				if (rowAtPoint > -1) {
-					table.setRowSelectionInterval(rowAtPoint, rowAtPoint);
+					/*
+					 * Select row, if user clicked outside of already selected
+					 * rows
+					 */
+					int[] selectedRows = table.getSelectedRows();
+					if (Arrays.binarySearch(selectedRows, rowAtPoint) < 0) {
+						table.setRowSelectionInterval(rowAtPoint, rowAtPoint);
+					}
 				}
 
 				if (table.isEditing()) {
@@ -179,13 +229,13 @@ public class UI {
 		JMenu menuEdit = new JMenu("Bearbeiten");
 		menuBar.add(menuEdit);
 
-		// JMenuItem menuItemCopy = new JMenuItem("Kopieren");
-		// menuItemCopy.addActionListener(new CopyActionListener());
-		// menuEdit.add(menuItemCopy);
-		// JMenuItem menuItemPaste = new JMenuItem("Einfügen");
-		// menuItemPaste.addActionListener(new PasteActionListener());
-		// menuEdit.add(menuItemPaste);
-		// menuEdit.addSeparator();
+		JMenuItem menuItemCopy = new JMenuItem("Kopieren");
+		menuItemCopy.addActionListener(new CopyActionListener());
+		menuEdit.add(menuItemCopy);
+		JMenuItem menuItemPaste = new JMenuItem("Einfügen");
+		menuItemPaste.addActionListener(new PasteActionListener());
+		menuEdit.add(menuItemPaste);
+		menuEdit.addSeparator();
 		menuItemEditEnable = new JCheckBoxMenuItem("Editieren");
 		menuItemEditEnable.addActionListener(new EditActionListener());
 		menuEdit.add(menuItemEditEnable);
@@ -193,16 +243,91 @@ public class UI {
 		frame.setJMenuBar(menuBar);
 	}
 
-	public void buildTable() {
+	public JComponent buildTable() {
 		tm = new MFDTableModel();
+
 		table = new JTable(tm);
 		table.setFillsViewportHeight(true);
 		table.setSelectionMode(ListSelectionModel.SINGLE_SELECTION);
-		table.setAutoCreateRowSorter(true);
-		table.getRowSorter().toggleSortOrder(0);
 
-		JScrollPane scrollPane = new JScrollPane(table);
-		frame.add(scrollPane);
+		sorter = new TableRowSorter<MFDTableModel>(tm);
+		sorter.toggleSortOrder(0);
+		table.setRowSorter(sorter);
+
+		return new JScrollPane(table);
+	}
+
+	private void updateFilter(String s) {
+		try {
+			RowFilter<MFDTableModel, Object> filter = RowFilter.regexFilter("(?i)" + s);
+			sorter.setRowFilter(filter);
+		} catch (PatternSyntaxException e) {
+			/* Use old filter */
+			/* TODO: Maybe set bg color of textfield */
+		}
+	}
+
+	public JComponent buildFilter() {
+		JPanel filterPane = new JPanel();
+		filterPane.setLayout(new BoxLayout(filterPane, BoxLayout.LINE_AXIS));
+
+		JLabel filterLabel = new JLabel("Filter:");
+
+		JTextField filterInput = new JTextField();
+		filterInput.getDocument().addDocumentListener(new DocumentListener() {
+			@Override
+			public void removeUpdate(DocumentEvent e) {
+				updateFilter(filterInput.getText());
+			}
+
+			@Override
+			public void insertUpdate(DocumentEvent e) {
+				updateFilter(filterInput.getText());
+			}
+
+			@Override
+			public void changedUpdate(DocumentEvent e) {
+				updateFilter(filterInput.getText());
+			}
+		});
+
+		JButton clearButton = new JButton("Clear");
+		clearButton.addActionListener(new ActionListener() {
+			public void actionPerformed(ActionEvent e) {
+				filterInput.setText("");
+			}
+		});
+
+		filterLabel.setMinimumSize(new Dimension(50, 25));
+		filterLabel.setPreferredSize(new Dimension(50, 25));
+		filterLabel.setMaximumSize(new Dimension(50, 25));
+		filterInput.setMinimumSize(new Dimension(150, 25));
+		filterInput.setPreferredSize(new Dimension(200, 25));
+		filterInput.setMaximumSize(new Dimension(500, 25));
+		clearButton.setMinimumSize(new Dimension(150, 25));
+		clearButton.setPreferredSize(new Dimension(150, 25));
+		clearButton.setMaximumSize(new Dimension(150, 25));
+
+		filterPane.add(Box.createRigidArea(new Dimension(10, 0)));
+		filterPane.add(filterLabel);
+		filterPane.add(Box.createRigidArea(new Dimension(10, 0)));
+		filterPane.add(filterInput);
+		filterPane.add(Box.createRigidArea(new Dimension(10, 0)));
+		filterPane.add(clearButton);
+		filterPane.add(Box.createHorizontalGlue());
+
+		return filterPane;
+	}
+
+	public void buildFrame(JComponent tableComp, JComponent filterComp) {
+		JPanel topPane = new JPanel();
+		topPane.setLayout(new BoxLayout(topPane, BoxLayout.PAGE_AXIS));
+
+		topPane.add(filterComp);
+		topPane.add(Box.createRigidArea(new Dimension(0, 4)));
+		topPane.add(tableComp);
+
+		frame.add(topPane);
 	}
 
 	public void buildTableEditors() {
@@ -235,19 +360,22 @@ public class UI {
 		popupMenu.add(menuItemRemove);
 		menuItemRemove.addActionListener(new RemoveActionListener());
 
+		JMenuItem menuItemCopy = new JMenuItem("Copy");
+		popupMenu.add(menuItemCopy);
+		menuItemCopy.addActionListener(new CopyActionListener());
+		JMenuItem menuItemPaste = new JMenuItem("Paste");
+		popupMenu.add(menuItemPaste);
+		menuItemPaste.addActionListener(new PasteActionListener());
+
 		table.addMouseListener(new TableMouseListener());
 	}
 
 	public void buildShortcuts() {
-		// KeyStroke keyStrokeCopy = KeyStroke.getKeyStroke(KeyEvent.VK_C,
-		// ActionEvent.CTRL_MASK, false);
-		// KeyStroke keyStrokePaste = KeyStroke.getKeyStroke(KeyEvent.VK_V,
-		// ActionEvent.CTRL_MASK, false);
-		//
-		// table.registerKeyboardAction(new CopyActionListener(), "Kopieren",
-		// keyStrokeCopy, JComponent.WHEN_FOCUSED);
-		// table.registerKeyboardAction(new PasteActionListener(), "Einfügen",
-		// keyStrokePaste, JComponent.WHEN_FOCUSED);
+		KeyStroke keyStrokeCopy = KeyStroke.getKeyStroke(KeyEvent.VK_C, ActionEvent.CTRL_MASK, false);
+		KeyStroke keyStrokePaste = KeyStroke.getKeyStroke(KeyEvent.VK_V, ActionEvent.CTRL_MASK, false);
+
+		table.registerKeyboardAction(new CopyActionListener(), "Kopieren", keyStrokeCopy, JComponent.WHEN_FOCUSED);
+		table.registerKeyboardAction(new PasteActionListener(), "Einfügen", keyStrokePaste, JComponent.WHEN_FOCUSED);
 	}
 
 	public UI() {
@@ -256,7 +384,9 @@ public class UI {
 		frame.setPreferredSize(new Dimension(1200, 800));
 
 		this.buildMenu();
-		this.buildTable();
+		JComponent table = this.buildTable();
+		JComponent filter = this.buildFilter();
+		this.buildFrame(table, filter);
 		this.buildTableEditors();
 		this.buildPopupMenu();
 		this.buildShortcuts();
