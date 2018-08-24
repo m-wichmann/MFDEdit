@@ -1,16 +1,13 @@
 package mfd_edit;
 
 import java.awt.datatransfer.DataFlavor;
-import java.awt.datatransfer.Transferable;
-import java.awt.datatransfer.UnsupportedFlavorException;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
 import java.io.Serializable;
-import java.util.ArrayList;
 import java.util.Arrays;
 
-public class MFDRecord implements Transferable, Serializable {
+public class MFDRecord implements Serializable {
 	private static final long serialVersionUID = -7916897579045493727L;
 
 	public enum IntroNextId {
@@ -29,7 +26,6 @@ public class MFDRecord implements Transferable, Serializable {
 	}
 
 	public static final DataFlavor mfdRecordFlavor = new DataFlavor(MFDRecord.class, "MFDRecord");
-	public static final DataFlavor mfdRecordListFlavor = new DataFlavor(ArrayList.class, "MFDRecordList");
 
 	public int record_no;
 	public int style_no;
@@ -213,26 +209,6 @@ public class MFDRecord implements Transferable, Serializable {
 			this.time_lower = lower;
 		} catch (NumberFormatException e) {
 			/* Silently ignore */
-		}
-	}
-
-	@Override
-	public DataFlavor[] getTransferDataFlavors() {
-		DataFlavor[] ret = { MFDRecord.mfdRecordFlavor, MFDRecord.mfdRecordListFlavor };
-		return ret;
-	}
-
-	@Override
-	public boolean isDataFlavorSupported(DataFlavor flavor) {
-		return flavor.equals(MFDRecord.mfdRecordFlavor) || flavor.equals(MFDRecord.mfdRecordListFlavor);
-	}
-
-	@Override
-	public Object getTransferData(DataFlavor flavor) throws UnsupportedFlavorException, IOException {
-		if (flavor.equals(MFDRecord.mfdRecordFlavor)) {
-			return this;
-		} else {
-			throw new UnsupportedFlavorException(flavor);
 		}
 	}
 }

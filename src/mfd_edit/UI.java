@@ -1,5 +1,6 @@
 package mfd_edit;
 
+import java.awt.Color;
 import java.awt.Dimension;
 import java.awt.Font;
 import java.awt.Point;
@@ -11,6 +12,7 @@ import java.awt.event.ActionListener;
 import java.awt.event.KeyEvent;
 import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
+import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileOutputStream;
 import java.io.IOException;
@@ -40,6 +42,7 @@ import javax.swing.JTextField;
 import javax.swing.KeyStroke;
 import javax.swing.ListSelectionModel;
 import javax.swing.RowFilter;
+import javax.swing.UIManager;
 import javax.swing.event.DocumentEvent;
 import javax.swing.event.DocumentListener;
 import javax.swing.filechooser.FileNameExtensionFilter;
@@ -50,6 +53,7 @@ import mfd_edit.MFDRecord.IntroNextId;
 
 public class UI {
 
+	private Settings settings;
 	private JFrame frame;
 	private JTable table;
 	private TableRowSorter<MFDTableModel> sorter;
@@ -58,18 +62,21 @@ public class UI {
 	private MFDFile mfdFile;
 	private MFDTableModel tm;
 	private JFrame infoFrame;
+	private JTextField filterInput;
 
 	public class OpenActionListener implements ActionListener {
 		@Override
 		public void actionPerformed(ActionEvent e) {
 			JFileChooser c = new JFileChooser();
 
-			// TODO: set real path (maybe last)
-			// c.setCurrentDirectory(new File(""));
+			c.setCurrentDirectory(new File(settings.getLastSaveDir()));
 
 			c.setFileFilter(new FileNameExtensionFilter("MFD File", "mfd"));
 			int rVal = c.showOpenDialog(frame);
 			if (rVal == JFileChooser.APPROVE_OPTION) {
+				settings.setLastSaveDir(c.getSelectedFile().toString());
+				settings.save();
+
 				try {
 					mfdFile = new MFDFile(new FileInputStream(c.getSelectedFile()));
 					tm.setMfdFile(mfdFile);
@@ -87,17 +94,18 @@ public class UI {
 		public void actionPerformed(ActionEvent e) {
 			JFileChooser c = new JFileChooser();
 
-			// TODO: set real path (maybe last)
-			// c.setCurrentDirectory(new File(""));
+			c.setCurrentDirectory(new File(settings.getLastSaveDir()));
 
 			c.setFileFilter(new FileNameExtensionFilter("MFD File", "mfd"));
 			int rVal = c.showSaveDialog(frame);
 			if (rVal == JFileChooser.APPROVE_OPTION) {
+				settings.setLastSaveDir(c.getSelectedFile().toString());
+				settings.save();
+
 				if (mfdFile != null) {
 					try {
 						mfdFile.export(new FileOutputStream(c.getSelectedFile()));
 					} catch (IOException e1) {
-						// TODO Auto-generated catch block
 						e1.printStackTrace();
 					}
 				}
@@ -125,28 +133,30 @@ public class UI {
 		public void actionPerformed(ActionEvent e) {
 			int[] rows = table.getSelectedRows();
 
-			/* TODO: Support copying of multiple rows */
-			MFDRecord data = mfdFile.getRecordList().get(table.convertRowIndexToModel(rows[0]));
+			MFDRecordList copyList = new MFDRecordList();
+			for (int i : rows) {
+				copyList.add(mfdFile.getRecordList().get(table.convertRowIndexToModel(i)));
+			}
 
 			Clipboard system = Toolkit.getDefaultToolkit().getSystemClipboard();
-			system.setContents(data, null);
+			system.setContents(copyList, null);
 		}
 	}
 
 	public class PasteActionListener implements ActionListener {
 		@Override
 		public void actionPerformed(ActionEvent e) {
-			MFDRecord record = null;
+			MFDRecordList recordList = null;
 
 			try {
 				Clipboard system = Toolkit.getDefaultToolkit().getSystemClipboard();
-				record = (MFDRecord) system.getData(MFDRecord.mfdRecordFlavor);
+				recordList = (MFDRecordList) system.getData(MFDRecordList.mfdRecordListFlavor);
 			} catch (UnsupportedFlavorException | IOException e1) {
 				e1.printStackTrace();
 			}
 
-			if ((mfdFile != null) && (record != null)) {
-				mfdFile.getRecordList().add(record);
+			if ((mfdFile != null) && (recordList != null)) {
+				mfdFile.getRecordList().addAll(recordList);
 				tm.fireTableDataChanged();
 			}
 		}
@@ -258,7 +268,7 @@ public class UI {
 
 		table = new JTable(tm);
 		table.setFillsViewportHeight(true);
-		table.setSelectionMode(ListSelectionModel.SINGLE_SELECTION);
+		table.setSelectionMode(ListSelectionModel.MULTIPLE_INTERVAL_SELECTION);
 
 		sorter = new TableRowSorter<MFDTableModel>(tm);
 		sorter.toggleSortOrder(0);
@@ -269,11 +279,13 @@ public class UI {
 
 	private void updateFilter(String s) {
 		try {
+			filterInput.setBackground(UIManager.getColor("TextField.background"));
+
 			RowFilter<MFDTableModel, Object> filter = RowFilter.regexFilter("(?i)" + s);
 			sorter.setRowFilter(filter);
 		} catch (PatternSyntaxException e) {
-			/* Use old filter */
-			/* TODO: Maybe set bg color of textfield */
+			/* Reuse old filter */
+			filterInput.setBackground(Color.RED);
 		}
 	}
 
@@ -283,7 +295,7 @@ public class UI {
 
 		JLabel filterLabel = new JLabel("Filter:");
 
-		JTextField filterInput = new JTextField();
+		filterInput = new JTextField();
 		filterInput.getDocument().addDocumentListener(new DocumentListener() {
 			@Override
 			public void removeUpdate(DocumentEvent e) {
@@ -414,6 +426,8 @@ public class UI {
 	}
 
 	public UI() {
+		this.settings = new Settings();
+
 		frame = new JFrame("MFDEdit");
 		frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
 		frame.setPreferredSize(new Dimension(1200, 800));
@@ -426,6 +440,10 @@ public class UI {
 		this.buildPopupMenu();
 		this.buildShortcuts();
 		this.buildInfoFrame();
+
+		this.mfdFile = new MFDFile();
+		tm.setMfdFile(mfdFile);
+		tm.fireTableDataChanged();
 
 		frame.pack();
 		frame.setVisible(true);

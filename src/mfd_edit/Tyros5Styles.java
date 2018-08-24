@@ -47,7 +47,8 @@ public class Tyros5Styles {
 		styleData = new StyleData[] {
 				new StyleData("External Style", 65533),
 
-				// extracted from http://www.jososoft.dk/yamaha/software/mffm/index.htm
+				// extracted from
+				// http://www.jososoft.dk/yamaha/software/mffm/index.htm
 				new StyleData("00sBoyBand", 5726),
 				new StyleData("12-8Ballad", 7716),
 				new StyleData("16BeatBallad", 8225),

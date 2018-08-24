@@ -111,6 +111,45 @@ public class MFDFile {
 		s.write("FPed".getBytes());
 	}
 
+	public MFDFile() {
+		// new String("MDB-100-100-3000TYROS5\0v1.13\0\0\0\0\0\0");
+		this.headerData = new byte[] {
+				0x4D,
+				0x44,
+				0x42,
+				0x2D,
+				0x31,
+				0x30,
+				0x30,
+				0x2D,
+				0x31,
+				0x30,
+				0x30,
+				0x2D,
+				0x33,
+				0x30,
+				0x30,
+				0x30,
+				0x54,
+				0x59,
+				0x52,
+				0x4F,
+				0x53,
+				0x35,
+				0x00,
+				0x76,
+				0x31,
+				0x2E,
+				0x31,
+				0x33,
+				0x00,
+				0x00,
+				0x00,
+				0x00,
+				0x00,
+				0x00 };
+	}
+
 	public MFDFile(InputStream s) throws IOException {
 		int no_records = this.readHeader(s);
 		for (int i = 0; i < no_records; i++) {
