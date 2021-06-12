@@ -113,6 +113,30 @@ public class UI {
 		}
 	}
 
+	public class ExportActionListener implements ActionListener {
+		@Override
+		public void actionPerformed(ActionEvent e) {
+			JFileChooser c = new JFileChooser();
+
+			c.setCurrentDirectory(new File(settings.getLastSaveDir()));
+
+			c.setFileFilter(new FileNameExtensionFilter("CSV File", "csv"));
+			int rVal = c.showSaveDialog(frame);
+			if (rVal == JFileChooser.APPROVE_OPTION) {
+				settings.setLastSaveDir(c.getSelectedFile().toString());
+				settings.save();
+
+				if (mfdFile != null) {
+					try {
+						mfdFile.exportCsv(new FileOutputStream(c.getSelectedFile()));
+					} catch (IOException e1) {
+						e1.printStackTrace();
+					}
+				}
+			}
+		}
+	}
+
 	public class InfoActionListener implements ActionListener {
 		@Override
 		public void actionPerformed(ActionEvent e) {
@@ -237,6 +261,10 @@ public class UI {
 		JMenuItem menuItemSave = new JMenuItem("Speichern...");
 		menuItemSave.addActionListener(new SaveActionListener());
 		menuFile.add(menuItemSave);
+		menuFile.addSeparator();
+		JMenuItem menuItemExport = new JMenuItem("CSV exportieren...");
+		menuItemExport.addActionListener(new ExportActionListener());
+		menuFile.add(menuItemExport);
 		menuFile.addSeparator();
 		JMenuItem menuItemInfo = new JMenuItem("Info");
 		menuItemInfo.addActionListener(new InfoActionListener());
@@ -375,17 +403,17 @@ public class UI {
 	public void buildPopupMenu() {
 		popupMenu = new JPopupMenu();
 
-		JMenuItem menuItemAdd = new JMenuItem("Add");
+		JMenuItem menuItemAdd = new JMenuItem("Hinzufügen");
 		popupMenu.add(menuItemAdd);
 		menuItemAdd.addActionListener(new AddActionListener());
-		JMenuItem menuItemRemove = new JMenuItem("Remove");
+		JMenuItem menuItemRemove = new JMenuItem("Entfernen");
 		popupMenu.add(menuItemRemove);
 		menuItemRemove.addActionListener(new RemoveActionListener());
 
-		JMenuItem menuItemCopy = new JMenuItem("Copy");
+		JMenuItem menuItemCopy = new JMenuItem("Kopieren");
 		popupMenu.add(menuItemCopy);
 		menuItemCopy.addActionListener(new CopyActionListener());
-		JMenuItem menuItemPaste = new JMenuItem("Paste");
+		JMenuItem menuItemPaste = new JMenuItem("Einfügen");
 		popupMenu.add(menuItemPaste);
 		menuItemPaste.addActionListener(new PasteActionListener());
 

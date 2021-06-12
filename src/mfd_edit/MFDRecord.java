@@ -5,6 +5,7 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
 import java.io.Serializable;
+import java.io.UnsupportedEncodingException;
 import java.util.Arrays;
 
 public class MFDRecord implements Serializable {
@@ -166,6 +167,122 @@ public class MFDRecord implements Serializable {
 
 			s.write(this.extStylePath.getBytes("ISO-8859-1"));
 		}
+	}
+
+	static public void exportCsvHeader(OutputStream s) throws IOException {
+		s.write("Name".getBytes());
+		s.write(";".getBytes());
+
+		s.write("Style".getBytes());
+		s.write(";".getBytes());
+
+		s.write("Takt".getBytes());
+		s.write(";".getBytes());
+
+		s.write("Tempo".getBytes());
+		s.write(";".getBytes());
+
+		s.write("Fav.".getBytes());
+		s.write(";".getBytes());
+
+		s.write("S1".getBytes());
+		s.write(";".getBytes());
+
+		s.write("S2".getBytes());
+		s.write(";".getBytes());
+
+		s.write("Genre".getBytes());
+		s.write(";".getBytes());
+
+		s.write("Keywords".getBytes());
+		s.write(";".getBytes());
+
+		s.write("Intro".getBytes());
+		s.write(";".getBytes());
+
+		s.write("Next".getBytes());
+		s.write(";".getBytes());
+
+		s.write("Style Pfad".getBytes());
+		s.write(";".getBytes());
+
+		s.write("isMusic".getBytes());
+		s.write(";".getBytes());
+	}
+
+	private byte[] convertString(String s) {
+		byte[] temp = {0};
+
+		try {
+			s = s.replace("\"", "'");
+			temp = s.getBytes("ISO-8859-1");
+
+			int len = 0;
+			for (byte b : temp) {
+				if (b == 0) {
+					break;
+				}
+				len++;
+			}
+
+			temp = Arrays.copyOfRange(temp, 0, len);
+		} catch (UnsupportedEncodingException e) {
+			e.printStackTrace();
+		}
+
+		return temp;
+	}
+
+	public void exportCsv(OutputStream s) throws IOException {
+		s.write("\"".getBytes());
+		s.write(convertString(this.title));
+		s.write("\"".getBytes());
+		s.write(";".getBytes());
+
+		s.write(Tyros5Styles.fromId(this.style_no).getBytes());
+		s.write(";".getBytes());
+
+		s.write((this.time_upper + "/" + this.time_lower).getBytes());
+		s.write(";".getBytes());
+
+		s.write(String.valueOf(this.tempo).getBytes());
+		s.write(";".getBytes());
+
+		s.write(this.fav ? "Yes".getBytes() : "No".getBytes());
+		s.write(";".getBytes());
+
+		s.write(this.s1 ? "Yes".getBytes() : "No".getBytes());
+		s.write(";".getBytes());
+
+		s.write(this.s2 ? "Yes".getBytes() : "No".getBytes());
+		s.write(";".getBytes());
+
+		s.write("\"".getBytes());
+		s.write(convertString(this.genre));
+		s.write("\"".getBytes());
+		s.write(";".getBytes());
+
+		s.write("\"".getBytes());
+		s.write(convertString(this.keywords));
+		s.write("\"".getBytes());
+		s.write(";".getBytes());
+
+		s.write(this.intro.toString().getBytes());
+		s.write(";".getBytes());
+
+		s.write(this.next.toString().getBytes());
+		s.write(";".getBytes());
+
+		if (this.extStylePath != null)
+		{
+			s.write("\"".getBytes());
+			s.write(convertString(this.extStylePath));
+			s.write("\"".getBytes());
+		}
+		s.write(";".getBytes());
+
+		s.write(this.isMusic ? "Yes".getBytes() : "No".getBytes());
+		s.write(";".getBytes());
 	}
 
 	public void updateExtPath(String path, boolean isMusic) throws IOException {

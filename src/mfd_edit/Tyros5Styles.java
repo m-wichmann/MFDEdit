@@ -20,7 +20,6 @@ public class Tyros5Styles {
 				return d.no;
 			}
 		}
-
 		/* TODO */
 		return 0;
 	}
@@ -31,7 +30,8 @@ public class Tyros5Styles {
 				return d.name;
 			}
 		}
-		return null;
+
+		return "UnknownStyle";
 	}
 
 	public static ArrayList<String> getStyleList() {

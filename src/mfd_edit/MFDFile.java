@@ -111,6 +111,18 @@ public class MFDFile {
 		s.write("FPed".getBytes());
 	}
 
+	public void exportCsv(OutputStream s) throws IOException {
+		/* Export header*/
+		MFDRecord.exportCsvHeader(s);
+		s.write("\n".getBytes());
+
+		/* Export records */
+		for (MFDRecord r : recordList) {
+			r.exportCsv(s);
+			s.write("\n".getBytes());
+		}
+	}
+
 	public MFDFile() {
 		// new String("MDB-100-100-3000TYROS5\0v1.13\0\0\0\0\0\0");
 		this.headerData = new byte[] {
